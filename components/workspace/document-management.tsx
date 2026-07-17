@@ -8,6 +8,7 @@ import {
 
 import { askDocumentAction } from "@/app/(portal)/document-intelligence/dms-actions";
 import { AnalysisMetaBar, type AnalysisMeta } from "@/components/workspace/analysis-meta";
+import { LineageButton } from "@/components/ai-intelligence/lineage-button";
 import { MarkdownView } from "@/components/ui/markdown";
 import { UploadDocButton } from "@/components/workspace/upload-doc-button";
 import { DMS_DOCUMENTS, type DmsDocument, type DocType } from "@/lib/dms-sample";
@@ -211,6 +212,12 @@ export function DocumentManagement() {
                 <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold", CLASS_TONE[sel.classification])}>
                   <Lock className="h-3 w-3" /> {classLabel(sel.classification)}
                 </span>
+                <LineageButton
+                  icon="sparkles"
+                  sourceLabel={t("ai.lin.srcService")}
+                  rows={[{ label: t("ai.lin.model"), value: t("ai.lin.modelAtRun") }]}
+                  endpoints={["/document-intelligence/analyze", "/documents", "/ai-capabilities/{document-chat}/run"]}
+                />
                 <button
                   onClick={analyse}
                   disabled={analysing}

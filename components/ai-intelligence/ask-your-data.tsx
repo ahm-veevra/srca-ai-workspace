@@ -21,10 +21,12 @@ export function AskYourData({
   configured,
   capabilityId,
   capabilityName,
+  agentId,
 }: {
   configured: boolean;
   capabilityId?: string;
   capabilityName?: string;
+  agentId?: string;
 }) {
   const t = useT();
   const { locale } = useLocale();
@@ -72,17 +74,19 @@ export function AskYourData({
         </div>
         <LineageButton
           icon="sparkles"
-          sourceLabel={t("ai.lin.srcCapability")}
+          sourceLabel={agentId ? t("ai.lin.srcAgent") : t("ai.lin.srcCapability")}
           rows={[
-            {
-              label: t("ai.lin.capability"),
-              value: capabilityName
-                ? `${capabilityName}${capabilityId ? ` (${capabilityId.slice(0, 8)})` : ""}`
-                : capabilityId || "—",
-            },
+            agentId
+              ? { label: t("ai.lin.agent"), value: agentId.slice(0, 8) }
+              : {
+                  label: t("ai.lin.capability"),
+                  value: capabilityName
+                    ? `${capabilityName}${capabilityId ? ` (${capabilityId.slice(0, 8)})` : ""}`
+                    : capabilityId || "—",
+                },
             { label: t("ai.lin.model"), value: model ?? t("ai.lin.modelAtRun") },
           ]}
-          endpoints={capabilityId ? [`/ai-capabilities/${capabilityId}/run`] : []}
+          endpoints={agentId ? [`/agents/${agentId}/run`] : capabilityId ? [`/ai-capabilities/${capabilityId}/run`] : []}
         />
       </div>
 

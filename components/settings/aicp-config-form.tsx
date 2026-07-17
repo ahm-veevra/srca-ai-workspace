@@ -199,6 +199,9 @@ export function AicpConfigForm({ initial }: { initial: AicpConfig }) {
           <Field label="Ask-Your-Data Capability" htmlFor="askDataCapabilityId" help="Natural-language analytics for the AICP Intelligence page. Blank falls back to the Copilot capability.">
             <Input id="askDataCapabilityId" value={cfg.askDataCapabilityId} onChange={(e) => set("askDataCapabilityId", e.target.value)} placeholder="(optional) capability id or key" />
           </Field>
+          <Field label="Ask-Your-Data Agent" htmlFor="askDataAgentId" help="AICP agent id for Ask-Your-Data — an agent with a SQL/connector tool that queries the data lake live. When set, it is used instead of the capability above.">
+            <Input id="askDataAgentId" value={cfg.askDataAgentId} onChange={(e) => set("askDataAgentId", e.target.value)} placeholder="(optional) agent id or key" />
+          </Field>
           <Field label="Call Triage Capability" htmlFor="triageCapabilityId" help="Assesses a 997 call transcript into severity, protocol and dispatch (AICP Intelligence › Call Triage). Blank falls back to the Copilot capability.">
             <Input id="triageCapabilityId" value={cfg.triageCapabilityId} onChange={(e) => set("triageCapabilityId", e.target.value)} placeholder="(optional) capability id or key" />
           </Field>

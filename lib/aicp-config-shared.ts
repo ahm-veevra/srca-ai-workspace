@@ -29,6 +29,10 @@ export interface AicpConfig {
   /** Natural-language analytics capability for the AICP Intelligence "Ask Your Data" surface.
    *  Blank falls back to the Copilot capability. */
   askDataCapabilityId: string;
+  /** Ask-Your-Data AGENT id — when set, the question is sent to this AICP agent (which can use a
+   *  SQL/connector tool to query the data lake live) instead of a capability. Takes precedence over
+   *  askDataCapabilityId; blank = use the capability path. */
+  askDataAgentId: string;
   /** Triage capability for the 997 Call Triage surface — assesses a transcript into severity,
    *  protocol and recommended dispatch. Blank falls back to the Copilot capability. */
   triageCapabilityId: string;

@@ -7,6 +7,7 @@ import {
 
 import { askDocumentAction } from "@/app/(portal)/document-intelligence/dms-actions";
 import { AnalysisMetaBar, type AnalysisMeta } from "@/components/workspace/analysis-meta";
+import { LineageButton } from "@/components/ai-intelligence/lineage-button";
 import { MarkdownView } from "@/components/ui/markdown";
 import { HR_RECORDS, type HrRecord, type HrKind, type HrStatus } from "@/lib/hr-sample";
 import { apiPost, ApiRequestError } from "@/lib/api-client";
@@ -158,6 +159,12 @@ export function HrManagement() {
           <div className="flex items-center gap-1.5">
             <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] text-muted-foreground">{kindLabel(sel.kind)}</span>
             <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", STATUS_TONE[sel.status])}>{statusLabel(sel.status)}</span>
+            <LineageButton
+              icon="sparkles"
+              sourceLabel={t("ai.lin.srcService")}
+              rows={[{ label: t("ai.lin.model"), value: t("ai.lin.modelAtRun") }]}
+              endpoints={["/hr-intelligence/cv-review", "/hr-intelligence/job-description", "/ai-capabilities/{document-chat}/run"]}
+            />
             <button onClick={run} disabled={busy}
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50">
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}

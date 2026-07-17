@@ -9,6 +9,7 @@ import {
 import { askDocumentAction } from "@/app/(portal)/document-intelligence/dms-actions";
 import { generateReplyAction } from "@/app/(portal)/correspondence-intelligence/corr-actions";
 import { AnalysisMetaBar, type AnalysisMeta } from "@/components/workspace/analysis-meta";
+import { LineageButton } from "@/components/ai-intelligence/lineage-button";
 import { MarkdownView } from "@/components/ui/markdown";
 import { UploadDocButton } from "@/components/workspace/upload-doc-button";
 import { CORRESPONDENCE, type Correspondence, type CorrStatus } from "@/lib/correspondence-sample";
@@ -220,6 +221,12 @@ export function CorrespondenceTracking() {
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", STATUS_TONE[sel.status])}>{statusLabel(sel.status)}</span>
                 <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] text-muted-foreground">{dirLabel(sel.direction)}</span>
+                <LineageButton
+                  icon="sparkles"
+                  sourceLabel={t("ai.lin.srcService")}
+                  rows={[{ label: t("ai.lin.model"), value: t("ai.lin.modelAtRun") }]}
+                  endpoints={["/correspondence-intelligence/analyze", "/ai-capabilities/{reply-draft}/run", "/ai-capabilities/{document-chat}/run"]}
+                />
                 <button onClick={analyse} disabled={analysing}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-surface-2 disabled:opacity-50">
                   {analysing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}{t("corr.analyse")}

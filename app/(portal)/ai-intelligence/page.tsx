@@ -20,7 +20,8 @@ export default async function AiIntelligencePage() {
     getAicpConfig(),
   ]);
   const askCapId = cfg.askDataCapabilityId || cfg.copilotCapabilityId;
-  const askConfigured = !!askCapId;
+  const askAgentId = cfg.askDataAgentId;
+  const askConfigured = !!(askAgentId || askCapId);
   const triageCapId = cfg.triageCapabilityId || cfg.copilotCapabilityId;
   const [askCapName, triageCapName] = session
     ? await Promise.all([fetchCapabilityName(askCapId), fetchCapabilityName(triageCapId)])
@@ -39,7 +40,7 @@ export default async function AiIntelligencePage() {
       </header>
 
       {/* Ask Your Data — natural-language analytics (per-user; only when signed in) */}
-      {session && <AskYourData configured={askConfigured} capabilityId={askCapId} capabilityName={askCapName} />}
+      {session && <AskYourData configured={askConfigured} capabilityId={askCapId} capabilityName={askCapName} agentId={askAgentId || undefined} />}
 
       {/* 997 Call Triage — transcription + AI severity/protocol assessment (per-user) */}
       {session && <CallTriage configured={!!triageCapId} capabilityId={triageCapId} capabilityName={triageCapName} />}
