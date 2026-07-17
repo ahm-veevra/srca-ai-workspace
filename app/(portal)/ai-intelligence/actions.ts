@@ -36,7 +36,9 @@ export async function askDataAction(question: string, locale = "en"): Promise<As
   if (!q) return { ok: false, error: "Ask a question first." };
 
   const cfg = await getAicpConfig();
-  const input = locale === "ar" ? `${q}\n\nRespond in Arabic.` : q;
+  // Answer in the question's language (both directions forced).
+  const qLang = /[؀-ۿ]/.test(q) ? "ar" : /[A-Za-z]/.test(q) ? "en" : locale;
+  const input = `${q}${qLang === "ar" ? "\n\nRespond in Arabic." : "\n\nRespond in English."}`;
 
   // 1) Agent path (preferred when configured) — uses tools (e.g. live SQL over the data lake).
   if (cfg.askDataAgentId) {
@@ -91,7 +93,7 @@ export async function triageTranscriptAction(transcript: string, locale = "en"):
   const capId = cfg.triageCapabilityId || cfg.copilotCapabilityId;
   if (!capId) return { ok: false, error: "No triage capability configured.", noCapability: true };
 
-  const input = locale === "ar" ? `${text}\n\nRespond in Arabic.` : text;
+  const input = `${text}${locale === "ar" ? "\n\nRespond in Arabic." : "\n\nRespond in English."}`;
 
   try {
     const res = await serverApi<{ output?: string; meta?: Record<string, unknown> }>(

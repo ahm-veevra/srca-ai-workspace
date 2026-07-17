@@ -33,7 +33,10 @@ export async function askDocumentAction(
 
   // The question is the instruction; the document is attached as reference context (not a prompt).
   const ref = docText.length > 12000 ? `${docText.slice(0, 12000)}\n…[truncated]` : docText;
-  const langLine = locale === "ar" ? "\n\nRespond in Arabic." : "";
+  // Answer in the QUESTION's language (both directions forced — without an explicit "Respond in
+  // English." the multilingual model can drift to Arabic on English questions).
+  const lang = /[؀-ۿ]/.test(q) ? "ar" : /[A-Za-z]/.test(q) ? "en" : locale;
+  const langLine = lang === "ar" ? "\n\nRespond in Arabic." : "\n\nRespond in English.";
   const input = `${q}\n\n[Reference document: "${docTitle}"]\n${ref}${langLine}`;
 
   try {

@@ -29,7 +29,7 @@ export async function generateReplyAction(
   if (!capId) return { ok: false, error: "No reply-draft capability configured.", noCapability: true };
 
   const ref = body.length > 10000 ? `${body.slice(0, 10000)}\n…[truncated]` : body;
-  const langLine = locale === "ar" ? "\n\nWrite the reply in Arabic." : "";
+  const langLine = locale === "ar" ? "\n\nWrite the reply in Arabic." : "\n\nWrite the reply in English.";
   const input = `${wish}\n\n[Incoming letter — subject: "${subject}"]\n${ref}${langLine}`;
 
   try {

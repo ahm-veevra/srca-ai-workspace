@@ -258,7 +258,9 @@ async function runCapability(capId: string, input: string, modelOut: ModelOut): 
 
 /** Append a language directive so the capability responds in the user's locale (values only). */
 function withLocale(trigger: string, locale: string): string {
-  return locale === "ar" ? `${trigger} Respond in Arabic.` : trigger;
+  // Force both directions — an English-only directive keeps the multilingual model from drifting
+  // to Arabic when the workspace is in English.
+  return locale === "ar" ? `${trigger} Respond in Arabic.` : `${trigger} Respond in English.`;
 }
 
 /** Executive briefing — capability returns JSON {headline, bullets}. */
