@@ -10,6 +10,7 @@ import { askDocumentAction } from "@/app/(portal)/document-intelligence/dms-acti
 import { generateReplyAction } from "@/app/(portal)/correspondence-intelligence/corr-actions";
 import { AnalysisMetaBar, type AnalysisMeta } from "@/components/workspace/analysis-meta";
 import { LineageButton } from "@/components/ai-intelligence/lineage-button";
+import { LetterView } from "@/components/workspace/letter-view";
 import { MarkdownView } from "@/components/ui/markdown";
 import { UploadDocButton } from "@/components/workspace/upload-doc-button";
 import { CORRESPONDENCE, type Correspondence, type CorrStatus } from "@/lib/correspondence-sample";
@@ -63,6 +64,7 @@ export function CorrespondenceTracking() {
   const [drafting, setDrafting] = React.useState(false);
   const [replyErr, setReplyErr] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
+  const [replyPreview, setReplyPreview] = React.useState(false);
 
   const [chats, setChats] = React.useState<Record<string, ChatMsg[]>>({});
   const [question, setQuestion] = React.useState("");
@@ -92,7 +94,7 @@ export function CorrespondenceTracking() {
   React.useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chat.length, chatBusy]);
 
   function selectItem(id: string) {
-    setSelId(id); setTab("letter"); setQuestion(""); setChatErr(null); setAnalyseErr(null); setReplyErr(null); setCopied(false);
+    setSelId(id); setTab("letter"); setQuestion(""); setChatErr(null); setAnalyseErr(null); setReplyErr(null); setCopied(false); setReplyPreview(false);
   }
 
   function onUploaded(text: string) {
@@ -101,7 +103,8 @@ export function CorrespondenceTracking() {
     setItems((cur) => [{
       id, ref: `CORR-NEW-${uploadCount.current}`, subject: `Uploaded letter ${uploadCount.current}`,
       subjectAr: `خطاب مرفوع ${uploadCount.current}`, from: "—", to: "SRCA", direction: "Incoming",
-      status: "New", priority: "Medium", channel: "Letter", date: new Date().toISOString().slice(0, 10), body: text,
+      status: "New", priority: "Medium", channel: "Letter", date: new Date().toISOString().slice(0, 10),
+      lang: /[؀-ۿ]/.test(text) ? "ar" : "en", body: text,
     }, ...cur]);
     selectItem(id);
   }
@@ -124,7 +127,8 @@ export function CorrespondenceTracking() {
     const instruction = intent === "custom" ? custom.trim() : INTENTS.find((i) => i.key === intent)?.instruction ?? "";
     if (!instruction) return;
     setDrafting(true); setReplyErr(null); setTab("reply"); setCopied(false);
-    const res = await generateReplyAction(subjectOf(sel), sel.body, instruction, locale);
+    // Reply in the LETTER's language (an Arabic official letter gets an Arabic reply), not the UI locale.
+    const res = await generateReplyAction(subjectOf(sel), sel.body, instruction, sel.lang);
     if (res.ok) setDrafts((m) => ({ ...m, [sel.id]: res.output }));
     else setReplyErr(res.noCapability ? t("corr.reply.awaitingCap") : t("corr.reply.error"));
     setDrafting(false);
@@ -241,11 +245,7 @@ export function CorrespondenceTracking() {
             </div>
 
             <div className="min-h-0 flex-1 overflow-auto p-4">
-              {tab === "letter" && (
-                <article className="mx-auto max-w-2xl rounded-lg border border-border bg-surface-2/40 p-6 shadow-sm">
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{sel.body}</p>
-                </article>
-              )}
+              {tab === "letter" && <LetterView item={sel} />}
 
               {tab === "analysis" && (
                 <div className="space-y-3">
@@ -302,8 +302,16 @@ export function CorrespondenceTracking() {
                   {replyErr && !drafting && <p className="text-sm text-danger">{replyErr}</p>}
                   {draft ? (
                     <div className="space-y-2">
-                      <textarea value={draft} onChange={(e) => setDrafts((m) => ({ ...m, [sel.id]: e.target.value }))}
-                        className="min-h-[16rem] w-full resize-y rounded-lg border border-border bg-surface-2/40 p-4 text-sm leading-relaxed outline-none focus:border-primary/50" />
+                      <div className="flex gap-1">
+                        <Chip active={!replyPreview} onClick={() => setReplyPreview(false)}>{t("corr.reply.edit")}</Chip>
+                        <Chip active={replyPreview} onClick={() => setReplyPreview(true)}>{t("corr.reply.preview")}</Chip>
+                      </div>
+                      {replyPreview ? (
+                        <LetterView item={srcaReplyItem(sel)} bodyOverride={draft} plainBody />
+                      ) : (
+                        <textarea value={draft} onChange={(e) => setDrafts((m) => ({ ...m, [sel.id]: e.target.value }))}
+                          className="min-h-[16rem] w-full resize-y rounded-lg border border-border bg-surface-2/40 p-4 text-sm leading-relaxed outline-none focus:border-primary/50" />
+                      )}
                       <div className="flex gap-2">
                         <button onClick={copyDraft} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-surface-2">
                           {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />} {copied ? t("corr.reply.copied") : t("corr.reply.copy")}
@@ -361,6 +369,28 @@ export function CorrespondenceTracking() {
       </aside>
     </div>
   );
+}
+
+/** Build an SRCA outgoing-letter shell for previewing a reply draft on official letterhead.
+ *  The AI draft already contains its own greeting/closing, so the viewer renders it with `plainBody`. */
+function srcaReplyItem(sel: Correspondence): Correspondence {
+  const ar = sel.lang === "ar";
+  return {
+    ...sel,
+    ref: `${sel.ref}-R`,
+    from: ar ? "هيئة الهلال الأحمر السعودي" : "Saudi Red Crescent Authority",
+    to: sel.from,
+    direction: "Outgoing",
+    official: {
+      entity: ar ? "هيئة الهلال الأحمر السعودي" : "Saudi Red Crescent Authority",
+      department: ar ? "الإدارة العامة للاتصال المؤسسي" : "Office of the Secretary General",
+      hijri: sel.official?.hijri,
+      recipient: sel.from,
+      signatory: ar ? "الإدارة المختصة" : "For the Saudi Red Crescent Authority",
+      signatoryTitle: ar ? "هيئة الهلال الأحمر السعودي" : "Saudi Red Crescent Authority",
+      seal: "crescent",
+    },
+  };
 }
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
