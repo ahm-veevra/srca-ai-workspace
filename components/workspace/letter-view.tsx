@@ -41,6 +41,19 @@ const LABELS = {
   },
 } as const;
 
+/** The SRCA red-crescent emblem (letterhead logo). Drawn as an SVG so it needs no external asset. */
+function SrcaLogo({ size = 58 }: { size?: number }) {
+  const red = "#c1121f";
+  const paper = "#fbf9f2";
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" aria-label="Saudi Red Crescent Authority">
+      {/* red crescent (opening faces left, bulge on the right — the Red Crescent emblem) */}
+      <circle cx="53" cy="50" r="38" fill={red} />
+      <circle cx="37" cy="49" r="31" fill={paper} />
+    </svg>
+  );
+}
+
 /** A stamped official seal (SRCA red crescent, or a green government star). */
 function OfficialSeal({ kind, size = 66 }: { kind?: Seal; size?: number }) {
   if (!kind || kind === "none") return null;
@@ -121,7 +134,7 @@ export function LetterView({
           <p className="text-center text-[12px] font-semibold" style={{ color: "#6b6b6b" }}>{L.basmala}</p>
           <div className="mt-3 flex items-center justify-between gap-3">
             <div className="flex h-16 w-16 items-center justify-center">
-              <OfficialSeal kind={o?.seal} />
+              {o?.seal === "crescent" ? <SrcaLogo /> : <OfficialSeal kind={o?.seal} />}
             </div>
             <div className="flex-1 text-center leading-tight">
               <p className="text-[14px] font-bold">{L.kingdom}</p>

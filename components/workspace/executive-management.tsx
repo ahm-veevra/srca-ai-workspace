@@ -7,6 +7,7 @@ import { askDocumentAction } from "@/app/(portal)/document-intelligence/dms-acti
 import { AnalysisMetaBar, type AnalysisMeta } from "@/components/workspace/analysis-meta";
 import { LineageButton } from "@/components/ai-intelligence/lineage-button";
 import { MarkdownView } from "@/components/ui/markdown";
+import { UploadDocButton } from "@/components/workspace/upload-doc-button";
 import { EXEC_RECORDS, type ExecRecord, type ExecStatus } from "@/lib/executive-sample";
 import { apiPost, ApiRequestError } from "@/lib/api-client";
 import { useLocale, useT } from "@/lib/i18n";
@@ -26,6 +27,7 @@ const prettify = (k: string) => k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.t
 export function ExecutiveManagement() {
   const t = useT();
   const { locale } = useLocale();
+  const [items, setItems] = React.useState<ExecRecord[]>(EXEC_RECORDS);
   const [selId, setSelId] = React.useState<string>(EXEC_RECORDS[0].id);
   const [query, setQuery] = React.useState("");
   const [tab, setTab] = React.useState<"report" | "briefing">("report");
@@ -37,14 +39,15 @@ export function ExecutiveManagement() {
   const [chatBusy, setChatBusy] = React.useState(false);
   const [chatErr, setChatErr] = React.useState<string | null>(null);
   const chatEndRef = React.useRef<HTMLDivElement>(null);
+  const uploadCount = React.useRef(0);
 
-  const sel = EXEC_RECORDS.find((r) => r.id === selId) ?? EXEC_RECORDS[0];
+  const sel = items.find((r) => r.id === selId) ?? items[0];
   const titleOf = (r: ExecRecord) => (locale === "ar" && r.titleAr ? r.titleAr : r.title);
   const statusLabel = (s: ExecStatus) => t(`ex.status.${s.replace(/\s/g, "")}` as MessageKey);
   const result = resultById[selId];
   const chat = chats[selId] ?? [];
 
-  const filtered = EXEC_RECORDS.filter((r) => {
+  const filtered = items.filter((r) => {
     const q = query.trim().toLowerCase();
     if (!q) return true;
     return r.title.toLowerCase().includes(q) || r.titleAr.includes(query.trim()) ||
@@ -55,6 +58,19 @@ export function ExecutiveManagement() {
 
   function selectRecord(id: string) {
     setSelId(id); setTab("report"); setQuestion(""); setChatErr(null); setErr(null);
+  }
+
+  function onUploaded(text: string) {
+    uploadCount.current += 1;
+    const n = uploadCount.current;
+    const id = `up-${Date.now()}`;
+    const rec: ExecRecord = {
+      id, title: `Uploaded document ${n}`, titleAr: `مستند مرفوع ${n}`,
+      period: "—", department: "—", status: "Draft",
+      date: new Date().toISOString().slice(0, 10), body: text,
+    };
+    setItems((cur) => [rec, ...cur]);
+    selectRecord(id);
   }
 
   async function brief() {
@@ -89,7 +105,7 @@ export function ExecutiveManagement() {
         <div className="space-y-2 border-b border-border p-3">
           <div className="flex items-center justify-between">
             <p className="eyebrow">{t("ex.register")}</p>
-            <span className="text-[11px] text-muted-foreground">{t("ex.count", { n: EXEC_RECORDS.length })}</span>
+            <span className="text-[11px] text-muted-foreground">{t("ex.count", { n: items.length })}</span>
           </div>
           <div className="relative">
             <Search className="pointer-events-none absolute start-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -115,6 +131,7 @@ export function ExecutiveManagement() {
             );
           })}
         </div>
+        <div className="border-t border-border p-2"><UploadDocButton onText={onUploaded} /></div>
       </aside>
 
       {/* ── Report + Briefing ───────────────────────────────────────────────── */}

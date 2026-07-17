@@ -17,6 +17,7 @@ import {
   MessagesSquare,
   Mic,
   Network,
+  PhoneCall,
   Presentation,
   Rocket,
   ScanText,
@@ -57,6 +58,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Operations",
     items: [
+      { href: "/call-center", label: "Call Center", icon: PhoneCall, perm: "inference.run" },
       { href: "/document-intelligence", label: "Documents", icon: ScanText, perm: "inference.run" },
       { href: "/correspondence-intelligence", label: "Correspondence", icon: Mail, perm: "inference.run" },
       { href: "/contract-intelligence", label: "Contract", icon: Handshake, perm: "inference.run" },

@@ -9,6 +9,7 @@ import { askDocumentAction } from "@/app/(portal)/document-intelligence/dms-acti
 import { AnalysisMetaBar, type AnalysisMeta } from "@/components/workspace/analysis-meta";
 import { LineageButton } from "@/components/ai-intelligence/lineage-button";
 import { MarkdownView } from "@/components/ui/markdown";
+import { UploadDocButton } from "@/components/workspace/upload-doc-button";
 import { HR_RECORDS, type HrRecord, type HrKind, type HrStatus } from "@/lib/hr-sample";
 import { apiPost, ApiRequestError } from "@/lib/api-client";
 import { useLocale, useT } from "@/lib/i18n";
@@ -31,6 +32,7 @@ const prettify = (k: string) => k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.t
 export function HrManagement() {
   const t = useT();
   const { locale } = useLocale();
+  const [items, setItems] = React.useState<HrRecord[]>(HR_RECORDS);
   const [selId, setSelId] = React.useState<string>(HR_RECORDS[0].id);
   const [query, setQuery] = React.useState("");
   const [kindFilter, setKindFilter] = React.useState<HrKind | "">("");
@@ -43,8 +45,9 @@ export function HrManagement() {
   const [chatBusy, setChatBusy] = React.useState(false);
   const [chatErr, setChatErr] = React.useState<string | null>(null);
   const chatEndRef = React.useRef<HTMLDivElement>(null);
+  const uploadCount = React.useRef(0);
 
-  const sel = HR_RECORDS.find((r) => r.id === selId) ?? HR_RECORDS[0];
+  const sel = items.find((r) => r.id === selId) ?? items[0];
   const titleOf = (r: HrRecord) => (locale === "ar" && r.titleAr ? r.titleAr : r.title);
   const statusLabel = (s: HrStatus) => t(`hr.status.${s}` as MessageKey);
   const kindLabel = (k: HrKind) => t(`hr.kind.${k}` as MessageKey);
@@ -54,7 +57,7 @@ export function HrManagement() {
   // The record body used for talk-to-record (the CV, or the job's description + key points).
   const recordBody = isCandidate ? (sel.cvText ?? "") : `${sel.description ?? ""}\n\n${(sel.keyPoints ?? []).join("\n")}`;
 
-  const filtered = HR_RECORDS.filter((r) => {
+  const filtered = items.filter((r) => {
     if (kindFilter && r.kind !== kindFilter) return false;
     const q = query.trim().toLowerCase();
     if (!q) return true;
@@ -66,6 +69,19 @@ export function HrManagement() {
 
   function selectRecord(id: string) {
     setSelId(id); setTab("primary"); setQuestion(""); setChatErr(null); setErr(null);
+  }
+
+  function onUploaded(text: string) {
+    uploadCount.current += 1;
+    const n = uploadCount.current;
+    const id = `up-${Date.now()}`;
+    const rec: HrRecord = {
+      id, kind: "Candidate", title: `Uploaded document ${n}`, titleAr: `مستند مرفوع ${n}`,
+      department: "—", status: "New", date: new Date().toISOString().slice(0, 10),
+      appliedFor: "—", reviewAgainst: "—", seniority: "—", cvText: text,
+    };
+    setItems((cur) => [rec, ...cur]);
+    selectRecord(id);
   }
 
   async function run() {
@@ -105,7 +121,7 @@ export function HrManagement() {
         <div className="space-y-2 border-b border-border p-3">
           <div className="flex items-center justify-between">
             <p className="eyebrow">{t("hr.register")}</p>
-            <span className="text-[11px] text-muted-foreground">{t("hr.count", { n: HR_RECORDS.length })}</span>
+            <span className="text-[11px] text-muted-foreground">{t("hr.count", { n: items.length })}</span>
           </div>
           <div className="relative">
             <Search className="pointer-events-none absolute start-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -139,6 +155,7 @@ export function HrManagement() {
             );
           })}
         </div>
+        <div className="border-t border-border p-2"><UploadDocButton onText={onUploaded} /></div>
       </aside>
 
       {/* ── CV / Details + AI ───────────────────────────────────────────────── */}

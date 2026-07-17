@@ -33,6 +33,7 @@ const AR_ITEMS: Record<string, string> = {
   "/settings/aicp": "إعدادات AICP",
   "/settings/dictionary": "قاموس التسميات",
   // Suites — Intelligence Centers
+  "/call-center": "مركز الاتصال",
   "/compliance-intelligence": "الامتثال",
   "/agent-marketplace": "الوكلاء",
   "/procurement-intelligence": "المشتريات",

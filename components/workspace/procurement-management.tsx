@@ -9,6 +9,7 @@ import { askDocumentAction } from "@/app/(portal)/document-intelligence/dms-acti
 import { AnalysisMetaBar, type AnalysisMeta } from "@/components/workspace/analysis-meta";
 import { LineageButton } from "@/components/ai-intelligence/lineage-button";
 import { MarkdownView } from "@/components/ui/markdown";
+import { UploadDocButton } from "@/components/workspace/upload-doc-button";
 import { PROC_RECORDS, type ProcRecord, type ProcKind, type ProcStatus } from "@/lib/procurement-sample";
 import { apiPost, ApiRequestError } from "@/lib/api-client";
 import { useLocale, useT } from "@/lib/i18n";
@@ -29,6 +30,7 @@ const prettify = (k: string) => k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.t
 export function ProcurementManagement() {
   const t = useT();
   const { locale } = useLocale();
+  const [items, setItems] = React.useState<ProcRecord[]>(PROC_RECORDS);
   const [selId, setSelId] = React.useState<string>(PROC_RECORDS[0].id);
   const [query, setQuery] = React.useState("");
   const [kindFilter, setKindFilter] = React.useState<ProcKind | "">("");
@@ -41,8 +43,9 @@ export function ProcurementManagement() {
   const [chatBusy, setChatBusy] = React.useState(false);
   const [chatErr, setChatErr] = React.useState<string | null>(null);
   const chatEndRef = React.useRef<HTMLDivElement>(null);
+  const uploadCount = React.useRef(0);
 
-  const sel = PROC_RECORDS.find((r) => r.id === selId) ?? PROC_RECORDS[0];
+  const sel = items.find((r) => r.id === selId) ?? items[0];
   const titleOf = (r: ProcRecord) => (locale === "ar" && r.titleAr ? r.titleAr : r.title);
   const statusLabel = (s: ProcStatus) => t(`pr.status.${s.replace(/\s/g, "")}` as MessageKey);
   const kindLabel = (k: ProcKind) => t(`pr.kind.${k}` as MessageKey);
@@ -50,7 +53,7 @@ export function ProcurementManagement() {
   const chat = chats[selId] ?? [];
   const isSpend = sel.kind === "Spend";
 
-  const filtered = PROC_RECORDS.filter((r) => {
+  const filtered = items.filter((r) => {
     if (kindFilter && r.kind !== kindFilter) return false;
     const q = query.trim().toLowerCase();
     if (!q) return true;
@@ -62,6 +65,25 @@ export function ProcurementManagement() {
 
   function selectRecord(id: string) {
     setSelId(id); setTab("data"); setQuestion(""); setChatErr(null); setErr(null);
+  }
+
+  function onUploaded(text: string) {
+    uploadCount.current += 1;
+    const n = uploadCount.current;
+    const rec: ProcRecord = {
+      id: `up-${Date.now()}`,
+      kind: "Spend",
+      title: `Uploaded document ${n}`,
+      titleAr: `مستند مرفوع ${n}`,
+      department: "—",
+      category: "—",
+      status: "Draft",
+      date: new Date().toISOString().slice(0, 10),
+      value: "—",
+      body: text,
+    };
+    setItems((cur) => [rec, ...cur]);
+    selectRecord(rec.id);
   }
 
   async function run() {
@@ -100,7 +122,7 @@ export function ProcurementManagement() {
         <div className="space-y-2 border-b border-border p-3">
           <div className="flex items-center justify-between">
             <p className="eyebrow">{t("pr.register")}</p>
-            <span className="text-[11px] text-muted-foreground">{t("pr.count", { n: PROC_RECORDS.length })}</span>
+            <span className="text-[11px] text-muted-foreground">{t("pr.count", { n: items.length })}</span>
           </div>
           <div className="relative">
             <Search className="pointer-events-none absolute start-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -134,6 +156,7 @@ export function ProcurementManagement() {
             );
           })}
         </div>
+        <div className="border-t border-border p-2"><UploadDocButton onText={onUploaded} /></div>
       </aside>
 
       {/* ── Data + AI ───────────────────────────────────────────────────────── */}
