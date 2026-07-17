@@ -10,6 +10,7 @@ import { askDocumentAction } from "@/app/(portal)/document-intelligence/dms-acti
 import { AnalysisMetaBar, type AnalysisMeta } from "@/components/workspace/analysis-meta";
 import { LineageButton } from "@/components/ai-intelligence/lineage-button";
 import { MarkdownView } from "@/components/ui/markdown";
+import { UploadDocButton } from "@/components/workspace/upload-doc-button";
 import { MEETINGS, type Meeting, type MeetingStatus } from "@/lib/meeting-sample";
 import { apiPost, apiUpload, ApiRequestError } from "@/lib/api-client";
 import { useLocale, useT } from "@/lib/i18n";
@@ -181,7 +182,7 @@ export function MeetingManagement() {
               icon="sparkles"
               sourceLabel={t("ai.lin.srcService")}
               rows={[{ label: t("ai.lin.model"), value: t("ai.lin.modelAtRun") }]}
-              endpoints={["/meeting-intelligence/analyze", "/transcription/transcribe", "/ai-capabilities/{document-chat}/run"]}
+              endpoints={["/meeting-intelligence/analyze", "/transcription/transcribe", "/documents (OCR extract)", "/ai-capabilities/{document-chat}/run"]}
             />
             <button onClick={generate} disabled={generating}
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50">
@@ -222,6 +223,13 @@ export function MeetingManagement() {
                   {transcribing ? t("mtg.transcribing") : t("mtg.transcribe")}
                 </button>
                 <input ref={audioRef} type="file" accept="audio/*" className="hidden" onChange={onAudio} />
+                {/* Upload an existing MoM / notes document — AICP OCR extracts the text, which becomes
+                    the meeting record (source for Generate-Minutes and Ask-this-meeting). */}
+                <UploadDocButton
+                  key={selId}
+                  label={t("mtg.uploadDoc")}
+                  onText={(text) => setTranscripts((m) => ({ ...m, [selId]: text }))}
+                />
                 {transcribeErr && <span className="text-xs text-danger">{transcribeErr}</span>}
               </div>
               {transcript.trim() ? (

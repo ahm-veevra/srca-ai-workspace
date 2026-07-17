@@ -245,6 +245,7 @@ async function runCapability(capId: string, input: string, modelOut: ModelOut): 
     const res = await throttledServerApi<{ output?: string; meta?: Record<string, unknown> }>(
       `/ai-capabilities/${capId}/run`,
       { method: "POST", body: JSON.stringify({ input }) },
+      { appAuth: true }, // dashboard generators run under the app's grants (kiosk identity)
     );
     const m = res.meta ?? {};
     const model = m.model ?? m.selected_model_key ?? m.model_key;
@@ -386,13 +387,19 @@ function releaseSlot(): void {
 
 /** serverApi wrapped by the concurrency cap — used for ALL AICP calls this module makes
  *  (queries, inference, name lookups) so a full render never bursts past the limit (429). */
-async function throttledServerApi<T>(path: string, init?: RequestInit): Promise<T> {
+async function throttledServerApi<T>(
+  path: string,
+  init?: RequestInit,
+  opts?: { appAuth?: boolean },
+): Promise<T> {
   await acquireSlot();
   try {
-    // NOTE: this wraps capability runs (briefing/forecast/recommendations) + name lookups, which
-    // are entitled to the USER, not the app — so it uses the normal (cookie) auth. Only the raw
-    // connector data query (runQuery) forces appAuth, because the connector is granted to the app.
-    return await serverApi<T>(path, init);
+    // NOTE: the dashboard is a machine/kiosk surface. Its capability RUNS
+    // (briefing/forecast/recommendations) and the connector data query use appAuth — the SRCA
+    // Workspace application is explicitly granted those capabilities + the data-lake connector, so
+    // the wallboard renders for ANY signed-in user, not only ones whose personal role is entitled.
+    // Name-metadata lookups (fetchAicpName) stay on the user cookie.
+    return await serverApi<T>(path, init, opts);
   } finally {
     releaseSlot();
   }

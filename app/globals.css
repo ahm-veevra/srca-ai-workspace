@@ -84,19 +84,19 @@
   }
 
   .dark {
-    /* Dark executive theme (default) */
-    --background: 222 64% 7%;
-    --foreground: 210 40% 98%;
-    --card: 221 47% 11%;
-    --card-foreground: 210 40% 98%;
-    --surface: 221 47% 11%;
-    --surface-2: 220 43% 15%;
-    --surface-3: 219 40% 20%;
-    --muted: 220 35% 16%;
-    --muted-foreground: 215 22% 65%;
-    --border: 219 35% 22%;
-    --border-strong: 217 33% 32%;
-    --input: 219 38% 18%;
+    /* Dark executive theme (default) — neutral near-black canvas (low saturation, not blue) */
+    --background: 220 12% 5%;
+    --foreground: 210 20% 98%;
+    --card: 220 9% 9%;
+    --card-foreground: 210 20% 98%;
+    --surface: 220 9% 9%;
+    --surface-2: 220 8% 13%;
+    --surface-3: 220 7% 18%;
+    --muted: 220 8% 15%;
+    --muted-foreground: 215 12% 66%;
+    --border: 220 8% 20%;
+    --border-strong: 220 8% 30%;
+    --input: 220 8% 17%;
     /* SRCA Red #E1251B, lifted for legibility on the dark canvas */
     --ring: 3 84% 60%;
 
@@ -106,12 +106,12 @@
     --accent-foreground: 0 0% 100%;
 
     --info: 205 90% 58%;
-    --info-foreground: 222 64% 7%;
+    --info-foreground: 220 12% 6%;
     /* Saudi Green, lifted for the dark canvas */
     --success: 147 62% 44%;
-    --success-foreground: 222 64% 7%;
+    --success-foreground: 220 12% 6%;
     --warning: 38 92% 55%;
-    --warning-foreground: 222 64% 7%;
+    --warning-foreground: 220 12% 6%;
     --danger: 348 82% 63%;
     --danger-foreground: 0 0% 100%;
 
@@ -192,8 +192,8 @@
     --accent: 147 62% 44%;
     --primary: 147 62% 44%;
     --ring: 147 60% 48%;
-    --accent-foreground: 222 64% 7%;
-    --primary-foreground: 222 64% 7%;
+    --accent-foreground: 220 12% 6%;
+    --primary-foreground: 220 12% 6%;
   }
 }
 

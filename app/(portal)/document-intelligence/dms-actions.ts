@@ -7,6 +7,19 @@ export type DocChatResult =
   | { ok: true; output: string; model?: string }
   | { ok: false; error: string; noCapability?: boolean };
 
+/** A capability run returns `output` as a string, or as an object wrapping the text
+ * (AICP stores model output as e.g. {"text": "…"}). Pull the answer text out of either shape. */
+function answerText(output: unknown): string {
+  if (typeof output === "string") return output.trim();
+  if (output && typeof output === "object") {
+    const o = output as Record<string, unknown>;
+    for (const k of ["text", "answer", "message", "content", "result"]) {
+      if (typeof o[k] === "string" && (o[k] as string).trim()) return (o[k] as string).trim();
+    }
+  }
+  return "";
+}
+
 /**
  * Talk-to-document: answer a question grounded in the open document. The document text is passed as
  * reference material; the AICP capability owns the prompt/model/grounding — the workspace authors no
@@ -40,16 +53,17 @@ export async function askDocumentAction(
   const input = `${q}\n\n[Reference document: "${docTitle}"]\n${ref}${langLine}`;
 
   try {
-    const res = await serverApi<{ output?: string; meta?: Record<string, unknown> }>(
+    const res = await serverApi<{ output?: unknown; meta?: Record<string, unknown> }>(
       `/ai-capabilities/${capId}/run`,
       { method: "POST", body: JSON.stringify({ input }) },
     );
-    if (typeof res.output !== "string" || !res.output.trim()) {
+    const output = answerText(res.output);
+    if (!output) {
       return { ok: false, error: "AICP returned an empty answer." };
     }
     const m = res.meta ?? {};
     const model = m.model ?? m.selected_model_key ?? m.model_key;
-    return { ok: true, output: res.output, model: model ? String(model) : undefined };
+    return { ok: true, output, model: model ? String(model) : undefined };
   } catch {
     return { ok: false, error: "Couldn't reach the document-chat capability." };
   }

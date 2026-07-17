@@ -1,21 +1,31 @@
 /** SRCA AI Workspace navigation — business-oriented. SRCA AI Workspace is a separate application from
  * the AICP console; every item here is a SRCA AI Workspace experience that consumes AICP APIs. */
 import {
+  Bot,
   Boxes,
+  Building2,
+  ClipboardCheck,
+  FileSearch,
+  FlaskConical,
   GraduationCap,
+  Handshake,
   History,
+  Languages,
   LayoutGrid,
   type LucideIcon,
-  Languages,
+  Mail,
   MessagesSquare,
+  Mic,
+  Network,
+  Presentation,
   Rocket,
+  ScanText,
   Settings2,
   ShieldCheck,
   Sparkles,
+  Users,
   Wand2,
 } from "lucide-react";
-
-import { SUITES } from "./suites";
 
 export interface NavItem {
   href: string;
@@ -30,34 +40,62 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-// Navigation is organised by the Enterprise Suites: each suite is an application built on AICP,
-// and its Intelligence Centers appear as the suite's capabilities. The five suite groups are
-// GENERATED from lib/suites.ts (the single source of truth) so nav membership can never drift
-// from the suite registry. Cross-cutting AICP tools stay in "Workspace"; discovery in "Explore".
-const _SUITE_GROUPS: NavGroup[] = SUITES.map((s) => ({
-  label: `${s.name} · ${s.short}`,
-  items: s.nav.map((n) => ({ href: n.href, label: n.label, icon: n.icon, perm: n.perm })),
-}));
-
+// The sidebar is organised by BUSINESS FUNCTION — what an SRCA user is doing — not by the AICP
+// product suites (V-Core/V-Flow/…). This nav is hand-authored and deliberately DECOUPLED from the
+// suite registry (lib/suites.ts): the suites still drive the home page and the "belongs to" cues,
+// but menu grouping is a separate concern so it reads naturally for staff. Every item maps to an
+// existing route and keeps its original perm, so role-gated items still hide for users who lack them.
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: "Workspace",
+    label: "Overview",
     items: [
       { href: "/workspace", label: "Home", icon: LayoutGrid, perm: null },
+      { href: "/ai-intelligence", label: "AICP Intelligence", icon: ShieldCheck, perm: "inference.run" },
+      { href: "/intelligence-history", label: "Intelligence History", icon: History, perm: "inference.run" },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { href: "/document-intelligence", label: "Documents", icon: ScanText, perm: "inference.run" },
+      { href: "/correspondence-intelligence", label: "Correspondence", icon: Mail, perm: "inference.run" },
+      { href: "/contract-intelligence", label: "Contract", icon: Handshake, perm: "inference.run" },
+      { href: "/rfp-intelligence", label: "RFP & Tender", icon: FileSearch, perm: "inference.run" },
+      { href: "/procurement-intelligence", label: "Procurement", icon: Building2, perm: "inference.run" },
+      { href: "/meeting-intelligence", label: "Meeting", icon: Mic, perm: "inference.run" },
+    ],
+  },
+  {
+    label: "Knowledge & People",
+    items: [
+      { href: "/knowledge-center", label: "Knowledge & Search", icon: Network, perm: "knowledge.read" },
+      { href: "/research-intelligence", label: "Research", icon: FlaskConical, perm: "inference.run" },
+      { href: "/hr-intelligence", label: "HR", icon: Users, perm: "inference.run" },
+    ],
+  },
+  {
+    label: "Governance & Leadership",
+    items: [
+      { href: "/compliance-intelligence", label: "Compliance", icon: ShieldCheck, perm: "inference.run" },
+      { href: "/project-intelligence", label: "Project", icon: ClipboardCheck, perm: "inference.run" },
+      { href: "/executive-intelligence", label: "Executive", icon: Presentation, perm: "inference.run" },
+    ],
+  },
+  {
+    label: "AI Tools",
+    items: [
       { href: "/v-gpt", label: "V-GPT", icon: MessagesSquare, perm: "inference.run" },
       { href: "/capabilities-run", label: "My Capabilities", icon: Sparkles, perm: "inference.run" },
       { href: "/create", label: "Build a Capability", icon: Wand2, perm: "config.write" },
-      { href: "/intelligence-history", label: "Intelligence History", icon: History, perm: "inference.run" },
-      { href: "/ai-intelligence", label: "AICP Intelligence", icon: ShieldCheck, perm: "inference.run" },
-      { href: "/settings/aicp", label: "AICP Configuration", icon: Settings2, perm: "config.write" },
-      { href: "/settings/dictionary", label: "Label Dictionary", icon: Languages, perm: "config.write" },
+      { href: "/agent-marketplace", label: "Agents", icon: Bot, perm: "agent.read" },
+      { href: "/capabilities", label: "AI Capabilities", icon: Boxes, perm: null },
     ],
   },
-  ..._SUITE_GROUPS,
   {
-    label: "Explore",
+    label: "Settings",
     items: [
-      { href: "/capabilities", label: "AI Capabilities", icon: Boxes, perm: null },
+      { href: "/settings/aicp", label: "AICP Configuration", icon: Settings2, perm: "config.write" },
+      { href: "/settings/dictionary", label: "Label Dictionary", icon: Languages, perm: "config.write" },
       { href: "/learn", label: "Learning Center", icon: GraduationCap, perm: null },
     ],
   },

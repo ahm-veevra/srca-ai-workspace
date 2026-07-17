@@ -12,16 +12,14 @@
 import { useLocale } from "@/lib/i18n";
 import { NAV_GROUPS } from "@/lib/nav";
 
-// Suite group labels are generated as `${name} · ${short}` — translate the descriptor, keep the
-// brand. Workspace/Explore are plain groups.
+// Group headers are business-function labels (see lib/nav.ts). Keyed by the exact English string.
 const AR_GROUPS: Record<string, string> = {
-  Workspace: "مساحة العمل",
-  Explore: "استكشاف",
-  "V-Core · Foundation": "V-Core · الأساس",
-  "V-Flow · Automation": "V-Flow · الأتمتة",
-  "V-Manage · Operations": "V-Manage · العمليات",
-  "V-Grow · Knowledge & People": "V-Grow · المعرفة والأفراد",
-  "V-Lead · Executive": "V-Lead · القيادة",
+  Overview: "نظرة عامة",
+  Operations: "العمليات",
+  "Knowledge & People": "المعرفة والأفراد",
+  "Governance & Leadership": "الحوكمة والقيادة",
+  "AI Tools": "أدوات الذكاء",
+  Settings: "الإعدادات",
 };
 
 const AR_ITEMS: Record<string, string> = {
