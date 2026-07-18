@@ -16,6 +16,7 @@ Legend: ✅ done · 🟡 partial / pending your action · ❌ open (not started)
 | `aicp-analysis-output-language-bug.md` | `/{domain}-intelligence/analyze` ignores output language (always English) | 🟡 workspace workaround for correspondence; add a `language` param for the rest |
 | `aicp-model-test-button-modality-bug.md` | Model "Test configuration" chat-probes every modality → false 404 for STT/embedding/rerank/vision | ❌ open |
 | `aicp-connection-leak-fix.md` | `idle in transaction` connection leak stalls requests (transcription, dashboard) | 🟡 mitigated (300s timeout); recurs — needs a real fix for what leaks the txn |
+| `aicp-routing-circuit-fallback-bug.md` | Fallback chain doesn't skip a circuit-broken primary — Qwen circuit-open fails instead of dropping to arabic-llm | ❌ open — blanks the dashboard AI panels when Qwen is down |
 | `aicp-pinned-models-widget-fix.md` | AICP Studio shows unpinned models in the Pinned Models panel | ❔ console bug — not verifiable from the workspace |
 
 ## Capabilities / agents / endpoints to build
