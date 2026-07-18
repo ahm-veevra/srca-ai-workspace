@@ -113,12 +113,10 @@ export function CorrespondenceTracking() {
     if (!sel) return;
     setAnalysing(true); setAnalyseErr(null); setTab("analysis");
     try {
-      // The analyze endpoint takes no language field and defaults to English; append an explicit
-      // output-language instruction so the triage values come back in the user's locale.
-      const langHint = locale === "ar"
-        ? "\n\n(تعليمات للمخرجات: اكتب قيم جميع الحقول باللغة العربية.)"
-        : "\n\n(Output instruction: write all field values in English.)";
-      const r = await apiPost<AnalyzeResult>("/correspondence-intelligence/analyze", { text: sel.body + langHint, title: sel.subject });
+      // Triage values come back in the analyst's UI locale (the endpoint's `language` field).
+      const r = await apiPost<AnalyzeResult>("/correspondence-intelligence/analyze", {
+        text: sel.body, title: sel.subject, language: locale === "ar" ? "Arabic" : "English",
+      });
       setAnalysisById((m) => ({ ...m, [sel.id]: r }));
     } catch (e) {
       setAnalyseErr(e instanceof ApiRequestError ? e.error.message : t("corr.reply.error"));
