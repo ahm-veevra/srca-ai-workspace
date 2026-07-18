@@ -15,9 +15,11 @@ import {
 import { AwaitingData } from "./awaiting-data";
 import { ProvenanceButton } from "./provenance-button";
 
-// Stylized Arabian-peninsula (KSA) outline over a 0–100 viewBox — illustrative, not geographic.
+// Recognizable Saudi-Arabia silhouette over a 0–100 viewBox (west→east = x, north→south = y):
+// long Red-Sea coast on the west, the Qatar peninsula notch on the east, the pointed south-west
+// toward Yemen, and the northern borders. Tuned so the region markers land in the right places.
 const KSA_PATH =
-  "M30,20 L58,17 Q70,18 78,30 Q82,38 80,45 Q78,52 72,56 Q66,64 58,70 Q52,80 40,84 Q31,82 28,73 Q22,64 21,57 Q17,50 19,42 Q20,33 26,26 Z";
+  "M18,27 C16,20 19,15 26,14 L48,12 L64,12 C71,12 74,17 73,22 C79,26 82,32 79,36 C76,38 74,37 73,40 C78,42 81,45 79,50 C77,58 71,65 62,71 C52,78 43,81 36,80 C30,79 27,73 26,67 C22,59 18,53 17,46 C16,39 16,32 18,27 Z";
 
 const PRIORITY: Record<"high" | "medium" | "low", string> = {
   high: "hsl(var(--danger))",
@@ -107,25 +109,48 @@ export function SaudiMap({
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         {/* Map */}
         <div className="relative overflow-hidden rounded-xl border border-border bg-surface-2">
-          <svg viewBox="0 0 100 100" className="h-full max-h-[420px] w-full" role="img" aria-label="Saudi Arabia operations map">
+          <svg viewBox="0 0 100 100" className="h-full max-h-[440px] w-full" role="img" aria-label="Saudi Arabia operations map">
             <defs>
+              <linearGradient id="ksa-land" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(var(--surface-3))" />
+                <stop offset="100%" stopColor="hsl(var(--muted))" />
+              </linearGradient>
+              <radialGradient id="ksa-sea" cx="50%" cy="45%" r="70%">
+                <stop offset="0%" stopColor="hsl(var(--info))" stopOpacity="0.04" />
+                <stop offset="100%" stopColor="hsl(var(--info))" stopOpacity="0.13" />
+              </radialGradient>
+              <clipPath id="ksa-clip"><path d={KSA_PATH} /></clipPath>
               {layers.heatmap &&
                 regions.map((r) => (
                   <radialGradient key={r.key} id={`heat-${r.key}`}>
-                    <stop offset="0%" stopColor={STATUS_FILL[r.status]} stopOpacity="0.55" />
+                    <stop offset="0%" stopColor={STATUS_FILL[r.status]} stopOpacity="0.6" />
                     <stop offset="100%" stopColor={STATUS_FILL[r.status]} stopOpacity="0" />
                   </radialGradient>
                 ))}
             </defs>
 
-            {/* Landmass */}
-            <path d={KSA_PATH} fill="hsl(var(--muted))" stroke="hsl(var(--border-strong))" strokeWidth="0.5" />
+            {/* Sea backdrop + labels */}
+            <rect x="0" y="0" width="100" height="100" fill="url(#ksa-sea)" />
+            <text x="7.5" y="46" transform="rotate(-90 7.5 46)" textAnchor="middle" fontSize="2.5" fill="hsl(var(--info))" opacity="0.55" className="italic">{t("cc.map.redSea")}</text>
+            <text x="92.5" y="42" transform="rotate(90 92.5 42)" textAnchor="middle" fontSize="2.5" fill="hsl(var(--info))" opacity="0.55" className="italic">{t("cc.map.gulf")}</text>
 
-            {/* Heatmap */}
-            {layers.heatmap &&
-              regions.map((r) => (
-                <circle key={r.key} cx={r.x} cy={r.y} r={6 + (r.calls / maxCalls) * 12} fill={`url(#heat-${r.key})`} />
-              ))}
+            {/* Landmass */}
+            <path d={KSA_PATH} fill="url(#ksa-land)" stroke="hsl(var(--border-strong))" strokeWidth="0.7" strokeLinejoin="round" />
+
+            {/* Graticule (clipped to land) */}
+            <g clipPath="url(#ksa-clip)" stroke="hsl(var(--border-strong))" strokeWidth="0.15" opacity="0.45">
+              {[25, 40, 55, 70].map((gy) => <line key={`h${gy}`} x1="0" y1={gy} x2="100" y2={gy} />)}
+              {[30, 45, 60, 75].map((gx) => <line key={`v${gx}`} x1={gx} y1="0" x2={gx} y2="100" />)}
+            </g>
+
+            {/* Heatmap (clipped to land) */}
+            {layers.heatmap && (
+              <g clipPath="url(#ksa-clip)">
+                {regions.map((r) => (
+                  <circle key={r.key} cx={r.x} cy={r.y} r={7 + (r.calls / maxCalls) * 13} fill={`url(#heat-${r.key})`} />
+                ))}
+              </g>
+            )}
 
             {/* Traffic arcs (illustrative) */}
             {layers.traffic && (
@@ -174,21 +199,38 @@ export function SaudiMap({
               ))}
 
             {/* Region hotspots (clickable) */}
-            {regions.map((r) => (
-              <g key={r.key} className="cursor-pointer" onClick={() => setSelected(r)}>
-                <circle
-                  cx={r.x}
-                  cy={r.y}
-                  r={selected.key === r.key ? 2.8 : 2}
-                  fill="hsl(var(--card))"
-                  stroke={STATUS_FILL[r.status]}
-                  strokeWidth={selected.key === r.key ? 1.1 : 0.8}
-                />
-                <text x={r.x} y={r.y - 3.4} textAnchor="middle" fontSize="2.6" fill="hsl(var(--foreground))" className="font-medium">
-                  {regionName(r)}
-                </text>
-              </g>
-            ))}
+            {regions.map((r) => {
+              const on = selected.key === r.key;
+              return (
+                <g key={r.key} className="cursor-pointer" onClick={() => setSelected(r)}>
+                  {on && (
+                    <circle cx={r.x} cy={r.y} r="4" fill="none" stroke={STATUS_FILL[r.status]} strokeWidth="0.5">
+                      <animate attributeName="r" values="3;5;3" dur="2.4s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite" />
+                    </circle>
+                  )}
+                  <circle cx={r.x} cy={r.y} r={on ? 2.5 : 2} fill={STATUS_FILL[r.status]} stroke="hsl(var(--card))" strokeWidth="0.9" />
+                  <text
+                    x={r.x}
+                    y={r.y - 3.6}
+                    textAnchor="middle"
+                    fontSize="2.7"
+                    fill="hsl(var(--foreground))"
+                    className="font-semibold"
+                    style={{ paintOrder: "stroke", stroke: "hsl(var(--card))", strokeWidth: 0.9 } as React.CSSProperties}
+                  >
+                    {regionName(r)}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Compass */}
+            <g transform="translate(91,12)" opacity="0.75">
+              <circle r="3" fill="hsl(var(--card))" stroke="hsl(var(--border-strong))" strokeWidth="0.3" />
+              <path d="M0,-2 L1,1 L0,0.2 L-1,1 Z" fill="hsl(var(--danger))" />
+              <text x="0" y="-3.3" textAnchor="middle" fontSize="2" fill="hsl(var(--muted-foreground))" className="font-semibold">N</text>
+            </g>
           </svg>
 
           {/* Legend */}

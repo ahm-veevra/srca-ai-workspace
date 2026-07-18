@@ -157,6 +157,8 @@ const en = {
   "cc.map.station": "Station",
   "cc.map.hospital": "Hospital",
   "cc.map.incident": "Incident",
+  "cc.map.redSea": "Red Sea",
+  "cc.map.gulf": "Arabian Gulf",
   "cc.map.awaiting": "Awaiting live map data",
   "cc.map.awaitingHint": "Regional coverage populates from the AICP data lake.",
   // Incident feed
@@ -1238,6 +1240,8 @@ const ar: Record<MessageKey, string> = {
   "cc.map.station": "محطة",
   "cc.map.hospital": "مستشفى",
   "cc.map.incident": "حادث",
+  "cc.map.redSea": "البحر الأحمر",
+  "cc.map.gulf": "الخليج العربي",
   "cc.map.awaiting": "بانتظار بيانات الخريطة الحية",
   "cc.map.awaitingHint": "تُعبَّأ التغطية الإقليمية من بحيرة بيانات AICP.",
   "cc.incidents.title": "بثّ الحوادث المباشر",
