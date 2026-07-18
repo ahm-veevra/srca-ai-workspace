@@ -111,8 +111,8 @@ export function SaudiMap({
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         {/* Map */}
-        <div className="relative overflow-hidden rounded-xl border border-border bg-surface-2">
-          <svg viewBox="0 0 100 76" className="h-full max-h-[400px] w-full" role="img" aria-label="Saudi Arabia operations map">
+        <div className="relative aspect-[100/76] self-start overflow-hidden rounded-xl border border-border bg-surface-2">
+          <svg viewBox="0 0 100 76" className="absolute inset-0 h-full w-full" role="img" aria-label="Saudi Arabia operations map">
             <defs>
               <linearGradient id="ksa-land" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="hsl(var(--surface-3))" />
@@ -172,18 +172,21 @@ export function SaudiMap({
               </g>
             )}
 
-            {/* Stations */}
+            {/* Stations — ambulance bases (amber rounded square with a white ring) */}
             {stations.map((s, i) => (
-              <rect key={i} x={s.x - 0.9} y={s.y - 0.9} width="1.8" height="1.8" rx="0.4" fill="hsl(var(--foreground))" opacity="0.55">
+              <g key={i}>
+                <rect x={s.x - 1.5} y={s.y - 1.5} width="3" height="3" rx="0.7" fill="hsl(var(--warning))" stroke="hsl(var(--card))" strokeWidth="0.5" />
+                <rect x={s.x - 0.55} y={s.y - 0.55} width="1.1" height="1.1" rx="0.2" fill="hsl(var(--card))" />
                 <title>{s.label}</title>
-              </rect>
+              </g>
             ))}
 
-            {/* Hospitals */}
+            {/* Hospitals — medical cross (info-blue disc + white cross) */}
             {hospitals.map((h, i) => (
-              <g key={i} stroke="hsl(var(--info))" strokeWidth="0.7">
-                <line x1={h.x - 1.1} y1={h.y} x2={h.x + 1.1} y2={h.y} />
-                <line x1={h.x} y1={h.y - 1.1} x2={h.x} y2={h.y + 1.1} />
+              <g key={i}>
+                <circle cx={h.x} cy={h.y} r="1.7" fill="hsl(var(--info))" stroke="hsl(var(--card))" strokeWidth="0.5" />
+                <line x1={h.x - 0.9} y1={h.y} x2={h.x + 0.9} y2={h.y} stroke="hsl(var(--card))" strokeWidth="0.55" strokeLinecap="round" />
+                <line x1={h.x} y1={h.y - 0.9} x2={h.x} y2={h.y + 0.9} stroke="hsl(var(--card))" strokeWidth="0.55" strokeLinecap="round" />
                 <title>{h.label}</title>
               </g>
             ))}
@@ -238,7 +241,7 @@ export function SaudiMap({
 
           {/* Legend */}
           <div className="absolute bottom-2 left-2 flex flex-wrap gap-x-3 gap-y-1 rounded-lg bg-card/80 px-2.5 py-1.5 text-[10px] text-muted-foreground backdrop-blur">
-            <span className="inline-flex items-center gap-1"><Ambulance className="h-3 w-3" /> {t("cc.map.station")}</span>
+            <span className="inline-flex items-center gap-1"><Ambulance className="h-3 w-3 text-warning" /> {t("cc.map.station")}</span>
             <span className="inline-flex items-center gap-1"><Hospital className="h-3 w-3 text-info" /> {t("cc.map.hospital")}</span>
             <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-danger" /> {t("cc.map.incident")}</span>
           </div>
