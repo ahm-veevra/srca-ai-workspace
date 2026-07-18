@@ -257,6 +257,15 @@ async function runCapability(capId: string, input: string, modelOut: ModelOut): 
   }
 }
 
+/** Race a promise against a timeout so one slow/failing AICP call can't block the whole SSR render.
+ *  The dashboard shows its fast connector data immediately; a laggy AI panel degrades to its fallback
+ *  ("Awaiting…") instead of holding the page for the full model latency (seconds on a slow fallback). */
+function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<T>((resolve) => { timer = setTimeout(() => resolve(fallback), ms); });
+  return Promise.race([p.finally(() => clearTimeout(timer)), timeout]);
+}
+
 /** Append a language directive so the capability responds in the user's locale (values only). */
 function withLocale(trigger: string, locale: string): string {
   // Force both directions — an English-only directive keeps the multilingual model from drifting
@@ -519,11 +528,12 @@ async function computeCommandCenterData(connectorId: string, locale: string): Pr
   // owns the prompt, model and grounding). The workspace only invokes them by their configured id.
   const modelOut: ModelOut = { model: null };
   const cfg = await getAicpConfig();
-  const [summary, forecast, recommendations] = await Promise.all([
-    runBriefing(cfg.briefingCapabilityId, modelOut, locale),
-    runForecast(cfg.forecastCapabilityId, modelOut, locale).then((f) => f ?? []),
-    runRecommendations(cfg.recommendationsCapabilityId, modelOut, locale).then((r) => r ?? []),
-  ]);
+  // Briefing, forecast and recommendations are generated CLIENT-SIDE by their own panels (each loads
+  // independently with its own spinner, via lib/command-center-assist). The SSR render never waits on
+  // an AI model, so a slow/failing model (e.g. Qwen down → slow fallback) can't block the dashboard.
+  const summary = null;
+  const forecast: Forecast[] = [];
+  const recommendations: Recommendation[] = [];
 
   // Resolve real names for the lineage popovers: the connector + each configured capability.
   const capIds = Array.from(
@@ -537,9 +547,14 @@ async function computeCommandCenterData(connectorId: string, locale: string): Pr
       ].filter(Boolean),
     ),
   );
+  // Names are cosmetic (lineage popovers) — never let them hold the render.
   const [connectorName, capNamePairs] = await Promise.all([
-    fetchAicpName(`/connectors/${connectorId}`),
-    Promise.all(capIds.map((id) => fetchAicpName(`/ai-capabilities/${id}`).then((name) => [id, name] as const))),
+    withTimeout(fetchAicpName(`/connectors/${connectorId}`), 2500, null),
+    withTimeout(
+      Promise.all(capIds.map((id) => fetchAicpName(`/ai-capabilities/${id}`).then((name) => [id, name] as const))),
+      2500,
+      [] as (readonly [string, string | null])[],
+    ),
   ]);
   const capabilityNames: Record<string, string> = {};
   for (const [id, name] of capNamePairs) if (name) capabilityNames[id] = name;

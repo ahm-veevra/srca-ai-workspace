@@ -85,6 +85,7 @@ export async function CommandCenter({ session }: { session: Session | null }) {
       {/* 5 · Predictive analytics */}
       <PredictiveAnalytics
         forecast={data.forecast}
+        forecastCapabilityId={cfg.forecastCapabilityId}
         responsePrediction={data.responsePrediction}
         hotspots={data.hotspots}
         ambulanceDemand={data.ambulanceDemand}
@@ -94,7 +95,7 @@ export async function CommandCenter({ session }: { session: Session | null }) {
       />
 
       {/* 6 · AI recommendations */}
-      <AiRecommendations recommendations={data.recommendations} />
+      <AiRecommendations recommendations={data.recommendations} capabilityId={cfg.recommendationsCapabilityId} />
 
       {/* 7 · Operational analytics */}
       <OperationalAnalytics

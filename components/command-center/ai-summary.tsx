@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { RefreshCw, Sparkles } from "lucide-react";
+import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 
 import { regenerateBriefing } from "@/lib/command-center-assist";
 import { useLocale, useT } from "@/lib/i18n";
@@ -72,6 +72,13 @@ export function AiSummary({
     }
   }, [busy, capabilityId, locale, t]);
 
+  // The briefing is generated CLIENT-SIDE (SSR no longer waits on the model) — load it on mount
+  // with a spinner, so a slow/failing model never blocks the dashboard.
+  React.useEffect(() => {
+    if (!current && capabilityId) void run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   React.useEffect(() => {
     if (!generating) return;
     if (shown >= (current?.bullets.length ?? 0)) {
@@ -85,7 +92,13 @@ export function AiSummary({
   if (!current) {
     return (
       <section className="rounded-2xl border border-primary/20 bg-card p-5 shadow-sm sm:p-6">
-        <AwaitingData label={t("cc.summary.awaiting")} hint={t("cc.summary.awaitingHint")} />
+        {busy ? (
+          <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" /> {t("cc.summary.generating")}
+          </div>
+        ) : (
+          <AwaitingData label={t("cc.summary.awaiting")} hint={t("cc.summary.awaitingHint")} />
+        )}
       </section>
     );
   }

@@ -1,7 +1,11 @@
-import { Check, Sparkles, TrendingUp, X, Zap } from "lucide-react";
+"use client";
+
+import * as React from "react";
+import { Check, Loader2, Sparkles, TrendingUp, X, Zap } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
-import { serverT } from "@/lib/i18n/server";
+import { regenerateRecommendations } from "@/lib/command-center-assist";
+import { useLocale, useT } from "@/lib/i18n";
 import { type MessageKey } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 import { type Recommendation } from "@/lib/command-center-types";
@@ -38,7 +42,7 @@ const IMPACT: Record<Recommendation["impact"], string> = {
 };
 
 function RecommendationCard({ rec }: { rec: Recommendation }) {
-  const t = serverT();
+  const t = useT();
   const lvl = (v: string) => t(("cc.level." + v.toLowerCase()) as MessageKey);
   const priority = PRIORITY[rec.priority];
 
@@ -141,10 +145,31 @@ function RecommendationCard({ rec }: { rec: Recommendation }) {
 
 export function AiRecommendations({
   recommendations = [],
+  capabilityId,
 }: {
   recommendations?: Recommendation[];
+  capabilityId?: string;
 }) {
-  const t = serverT();
+  const { locale } = useLocale();
+  const t = useT();
+  const [recs, setRecs] = React.useState<Recommendation[]>(recommendations);
+  const [busy, setBusy] = React.useState(false);
+
+  // Recommendations are generated CLIENT-SIDE (SSR no longer waits on the model) — load them on
+  // mount with a spinner, so a slow/failing model never blocks or empties the panel.
+  const run = React.useCallback(async () => {
+    if (!capabilityId) return;
+    setBusy(true);
+    const result = await regenerateRecommendations(capabilityId, locale);
+    setBusy(false);
+    if (result) setRecs(result);
+  }, [capabilityId, locale]);
+
+  React.useEffect(() => {
+    if (recs.length === 0 && capabilityId) void run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <section className="space-y-5">
       <div className="flex items-start justify-between gap-3">
@@ -164,11 +189,17 @@ export function AiRecommendations({
         <ProvenanceButton surfaceKey="recommendations" />
       </div>
 
-      {recommendations.length === 0 ? (
-        <AwaitingData label={t("cc.recs.awaiting")} hint={t("cc.recs.awaitingHint")} />
+      {recs.length === 0 ? (
+        busy ? (
+          <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" /> {t("cc.summary.generating")}
+          </div>
+        ) : (
+          <AwaitingData label={t("cc.recs.awaiting")} hint={t("cc.recs.awaitingHint")} />
+        )
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {recommendations.map((rec) => (
+          {recs.map((rec) => (
             <RecommendationCard key={rec.id} rec={rec} />
           ))}
         </div>

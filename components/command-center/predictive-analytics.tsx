@@ -1,11 +1,13 @@
 "use client";
 
+import * as React from "react";
 import {
   Activity,
   Ambulance,
   Building2,
   Clock,
   Flame,
+  Loader2,
   MapPin,
   PhoneCall,
   Sparkles,
@@ -36,7 +38,8 @@ import {
   type ResponsePrediction,
   type Status,
 } from "@/lib/command-center-types";
-import { useT, type MessageKey } from "@/lib/i18n";
+import { useLocale, useT, type MessageKey } from "@/lib/i18n";
+import { regenerateForecast } from "@/lib/command-center-assist";
 import { dl } from "@/lib/command-center-labels";
 import { cn } from "@/lib/utils";
 
@@ -125,11 +128,31 @@ function Meter({
 
 /* ── 1. Emergency Call Forecast ────────────────────────────────────────────── */
 
-function CallForecastWidget({ forecast = [] }: { forecast?: Forecast[] }) {
+function CallForecastWidget({
+  forecast = [],
+  loading = false,
+}: {
+  forecast?: Forecast[];
+  loading?: boolean;
+}) {
   const t = useT();
   const avg = forecast.length
     ? Math.round(forecast.reduce((s, f) => s + f.confidence, 0) / forecast.length)
     : 0;
+  if (forecast.length === 0) {
+    return (
+      <WidgetCard icon={PhoneCall} title={t("cc.pred.callForecast")} provKey="call_forecast">
+        {loading ? (
+          <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+            {t("cc.summary.generating")}
+          </div>
+        ) : (
+          <AwaitingData compact label={t("cc.pred.awaitingSmall")} hint="" />
+        )}
+      </WidgetCard>
+    );
+  }
   return (
     <WidgetCard icon={PhoneCall} title={t("cc.pred.callForecast")} provKey="call_forecast" confidence={avg}>
       <div className="grid grid-cols-2 gap-3">
@@ -510,6 +533,7 @@ function CrewFatigueWidget({ fatigue = null }: { fatigue?: CrewFatigue | null })
 
 export function PredictiveAnalytics({
   forecast = [],
+  forecastCapabilityId,
   responsePrediction = null,
   hotspots = [],
   ambulanceDemand = null,
@@ -518,6 +542,7 @@ export function PredictiveAnalytics({
   crewFatigue = null,
 }: {
   forecast?: Forecast[];
+  forecastCapabilityId?: string;
   responsePrediction?: ResponsePrediction | null;
   hotspots?: Hotspot[];
   ambulanceDemand?: AmbulanceDemand | null;
@@ -526,6 +551,27 @@ export function PredictiveAnalytics({
   crewFatigue?: CrewFatigue | null;
 }) {
   const t = useT();
+  const { locale } = useLocale();
+
+  // The call forecast is generated CLIENT-SIDE (SSR no longer waits on the model) — load it on
+  // mount with a spinner, so a slow/failing model never blocks or empties this widget.
+  const [fc, setFc] = React.useState<Forecast[]>(forecast);
+  const [fcBusy, setFcBusy] = React.useState(false);
+  React.useEffect(() => {
+    if (fc.length === 0 && forecastCapabilityId) {
+      setFcBusy(true);
+      void (async () => {
+        try {
+          const result = await regenerateForecast(forecastCapabilityId, locale);
+          if (result) setFc(result);
+        } finally {
+          setFcBusy(false);
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const empty =
     forecast.length === 0 &&
     !responsePrediction &&
@@ -557,7 +603,7 @@ export function PredictiveAnalytics({
         <AwaitingData label={t("cc.pred.awaiting")} hint={t("cc.pred.awaitingHint")} />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <CallForecastWidget forecast={forecast} />
+          <CallForecastWidget forecast={fc} loading={fcBusy} />
           <ResponsePredictionWidget prediction={responsePrediction} />
           <HotspotsWidget hotspots={hotspots} />
           <DemandWidget demand={ambulanceDemand} />

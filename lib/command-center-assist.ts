@@ -4,6 +4,7 @@
 // Regenerate). ALL AI logic — prompt, model, grounding — lives in AICP capabilities; the
 // workspace only invokes /ai-capabilities/{id}/run and renders the result. No prompts here.
 import { apiPost } from "@/lib/api-client";
+import { type Forecast, type Recommendation } from "@/lib/command-center-types";
 
 interface CapabilityRunResult {
   output?: string;
@@ -149,6 +150,63 @@ export async function regenerateBriefing(
     const bullets = Array.isArray(parsed.bullets) ? parsed.bullets.map(String).filter(Boolean) : [];
     if (!parsed.headline || !bullets.length) return null;
     return { headline: String(parsed.headline), bullets };
+  } catch {
+    return null;
+  }
+}
+
+/** Regenerate the call-demand forecast — runs the forecast capability, parses {forecast:[{label,value,confidence}]}. */
+export async function regenerateForecast(capabilityId: string, locale?: string): Promise<Forecast[] | null> {
+  if (!capabilityId) return null;
+  try {
+    const res = await runCapability(capabilityId, withLocale("Forecast today's emergency-call demand.", locale));
+    const out = typeof res.output === "string" ? res.output : null;
+    const json = out ? extractJson(out) : null;
+    if (!json) return null;
+    const parsed = JSON.parse(json) as { forecast?: unknown };
+    if (!Array.isArray(parsed.forecast)) return null;
+    const list: Forecast[] = parsed.forecast
+      .map((f) => {
+        const o = f as Record<string, unknown>;
+        return { label: String(o.label ?? "").trim(), value: String(o.value ?? "").trim(), confidence: Number(o.confidence) || 0 };
+      })
+      .filter((f) => f.label && f.value);
+    return list.length ? list : null;
+  } catch {
+    return null;
+  }
+}
+
+const REC_IMPACTS = ["High", "Medium", "Low"];
+const REC_PRIORITIES = ["Critical", "High", "Medium"];
+
+/** Regenerate operational recommendations — parses {recommendations:[{id,title,reason,benefit,confidence,impact,priority}]}. */
+export async function regenerateRecommendations(capabilityId: string, locale?: string): Promise<Recommendation[] | null> {
+  if (!capabilityId) return null;
+  try {
+    const res = await runCapability(capabilityId, withLocale("Recommend prioritized operational actions.", locale));
+    const out = typeof res.output === "string" ? res.output : null;
+    const json = out ? extractJson(out) : null;
+    if (!json) return null;
+    const parsed = JSON.parse(json) as { recommendations?: unknown };
+    if (!Array.isArray(parsed.recommendations)) return null;
+    const list: Recommendation[] = parsed.recommendations
+      .map((r, i) => {
+        const o = r as Record<string, unknown>;
+        const impact = String(o.impact ?? "").trim();
+        const priority = String(o.priority ?? "").trim();
+        return {
+          id: String(o.id ?? "").trim() || `R${i + 1}`,
+          title: String(o.title ?? "").trim(),
+          reason: String(o.reason ?? "").trim(),
+          benefit: String(o.benefit ?? "").trim(),
+          confidence: Number(o.confidence) || 0,
+          impact: (REC_IMPACTS.includes(impact) ? impact : "Medium") as Recommendation["impact"],
+          priority: (REC_PRIORITIES.includes(priority) ? priority : "Medium") as Recommendation["priority"],
+        };
+      })
+      .filter((r) => r.title);
+    return list.length ? list : null;
   } catch {
     return null;
   }
