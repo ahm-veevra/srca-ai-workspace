@@ -35,7 +35,7 @@ function regionIcon(name: string, color: string, selected: boolean) {
     iconSize: [0, 0],
     iconAnchor: [s / 2, s / 2],
     html: `<div style="display:flex;align-items:center;gap:5px;white-space:nowrap">${dot(color, s, 0)}
-      <span style="font:600 12px/1 system-ui,sans-serif;color:#111;background:rgba(255,255,255,.92);padding:2px 6px;border-radius:5px;box-shadow:0 1px 2px rgba(0,0,0,.25)">${name}</span></div>`,
+      <span style="font-weight:600;font-size:12px;line-height:1.15;color:#111;background:rgba(255,255,255,.92);padding:2px 6px;border-radius:5px;box-shadow:0 1px 2px rgba(0,0,0,.25)">${name}</span></div>`,
   });
 }
 function stationIcon() {

@@ -29,6 +29,15 @@
     "Noto Sans Arabic", "Geeza Pro", Tahoma, ui-sans-serif, sans-serif;
 }
 
+/* Leaflet renders in its own DOM (outside the app's font cascade), so its map labels
+ * and popups don't inherit Cairo. Route Leaflet text to the Arabic face under RTL. */
+[dir="rtl"] .leaflet-container,
+[dir="rtl"] .leaflet-popup-content,
+[dir="rtl"] .leaflet-tooltip {
+  font-family: var(--font-arabic), "Segoe UI", "Noto Naskh Arabic",
+    "Noto Sans Arabic", Tahoma, ui-sans-serif, sans-serif;
+}
+
 /*
  * SRCA AI Workspace design system — Saudi Red Crescent Authority.
  * Standard shadcn convention: :root holds the LIGHT palette, .dark holds the
