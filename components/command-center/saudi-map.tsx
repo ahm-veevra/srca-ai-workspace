@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Ambulance, Building2, CloudRain, Flame, Hospital, Layers, MapPin, Navigation } from "lucide-react";
+import { Ambulance, Building2, CloudRain, Flame, Hospital, Layers, MapPin, Maximize2, Navigation, X, ZoomIn, ZoomOut } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useLocale, useT } from "@/lib/i18n";
@@ -62,6 +62,45 @@ export function SaudiMap({
   const toggle = (k: LayerKey) => setLayers((s) => ({ ...s, [k]: !s[k] }));
   const maxCalls = Math.max(...regions.map((r) => r.calls));
 
+  // ── Zoom / pan (viewBox) + point selection ────────────────────────────────
+  const [view, setView] = React.useState({ x: 0, y: 0, w: 100, h: MAP_H });
+  const [pin, setPin] = React.useState<
+    { kind: "station" | "hospital" | "incident"; label: string; x: number; y: number; extra?: string } | null
+  >(null);
+  const svgRef = React.useRef<SVGSVGElement>(null);
+  const drag = React.useRef<{ x: number; y: number } | null>(null);
+  const moved = React.useRef(false);
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+  function zoomBy(factor: number) {
+    setView((v) => {
+      const nw = clamp(v.w * factor, 26, 100);
+      const nh = nw * (MAP_H / 100);
+      const cx = v.x + v.w / 2, cy = v.y + v.h / 2;
+      return { x: clamp(cx - nw / 2, 0, 100 - nw), y: clamp(cy - nh / 2, 0, MAP_H - nh), w: nw, h: nh };
+    });
+  }
+  const resetView = () => setView({ x: 0, y: 0, w: 100, h: MAP_H });
+  function onDown(e: React.MouseEvent) { drag.current = { x: e.clientX, y: e.clientY }; moved.current = false; }
+  function onMove(e: React.MouseEvent) {
+    if (!drag.current || !svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const ddx = e.clientX - drag.current.x, ddy = e.clientY - drag.current.y;
+    if (Math.abs(ddx) + Math.abs(ddy) > 2) moved.current = true;
+    drag.current = { x: e.clientX, y: e.clientY };
+    setView((v) => ({
+      ...v,
+      x: clamp(v.x - (ddx / rect.width) * v.w, 0, 100 - v.w),
+      y: clamp(v.y - (ddy / rect.height) * v.h, 0, MAP_H - v.h),
+    }));
+  }
+  const onUp = () => { drag.current = null; };
+  const pickPoint = (p: NonNullable<typeof pin>) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (moved.current) { moved.current = false; return; }
+    setPin(p);
+  };
+
   const LAYER_META: { key: LayerKey; label: string; icon: typeof Layers }[] = [
     { key: "heatmap", label: t("cc.map.heatmap"), icon: Flame },
     { key: "incidents", label: t("cc.map.incidents"), icon: MapPin },
@@ -109,10 +148,21 @@ export function SaudiMap({
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
         {/* Map */}
-        <div className="relative aspect-[100/76] self-start overflow-hidden rounded-xl border border-border bg-surface-2">
-          <svg viewBox="0 0 100 76" className="absolute inset-0 h-full w-full" role="img" aria-label="Saudi Arabia operations map">
+        <div className="relative mx-auto aspect-[100/76] w-full max-w-[500px] self-start overflow-hidden rounded-xl border border-border bg-surface-2">
+          <svg
+            ref={svgRef}
+            viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
+            className={cn("absolute inset-0 h-full w-full touch-none select-none", view.w < 100 ? "cursor-grab active:cursor-grabbing" : "cursor-default")}
+            role="img"
+            aria-label="Saudi Arabia operations map"
+            onMouseDown={onDown}
+            onMouseMove={onMove}
+            onMouseUp={onUp}
+            onMouseLeave={onUp}
+            onClick={() => { if (moved.current) { moved.current = false; return; } setPin(null); }}
+          >
             <defs>
               <linearGradient id="ksa-land" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="hsl(var(--surface-3))" />
@@ -174,27 +224,36 @@ export function SaudiMap({
 
             {/* Stations — ambulance bases (amber rounded square with a white ring) */}
             {stations.map((s, i) => (
-              <g key={i}>
+              <g key={i} className="cursor-pointer" onMouseDown={(e) => e.stopPropagation()}
+                onClick={pickPoint({ kind: "station", label: s.label, x: s.x, y: s.y })}>
                 <rect x={s.x - 1.5} y={s.y - 1.5} width="3" height="3" rx="0.7" fill="hsl(var(--warning))" stroke="hsl(var(--card))" strokeWidth="0.5" />
                 <rect x={s.x - 0.55} y={s.y - 0.55} width="1.1" height="1.1" rx="0.2" fill="hsl(var(--card))" />
+                {pin?.kind === "station" && pin.x === s.x && pin.y === s.y && (
+                  <circle cx={s.x} cy={s.y} r="2.6" fill="none" stroke="hsl(var(--warning))" strokeWidth="0.4" />
+                )}
                 <title>{s.label}</title>
               </g>
             ))}
 
             {/* Hospitals — medical cross (info-blue disc + white cross) */}
             {hospitals.map((h, i) => (
-              <g key={i}>
+              <g key={i} className="cursor-pointer" onMouseDown={(e) => e.stopPropagation()}
+                onClick={pickPoint({ kind: "hospital", label: h.label, x: h.x, y: h.y })}>
                 <circle cx={h.x} cy={h.y} r="1.7" fill="hsl(var(--info))" stroke="hsl(var(--card))" strokeWidth="0.5" />
                 <line x1={h.x - 0.9} y1={h.y} x2={h.x + 0.9} y2={h.y} stroke="hsl(var(--card))" strokeWidth="0.55" strokeLinecap="round" />
                 <line x1={h.x} y1={h.y - 0.9} x2={h.x} y2={h.y + 0.9} stroke="hsl(var(--card))" strokeWidth="0.55" strokeLinecap="round" />
+                {pin?.kind === "hospital" && pin.x === h.x && pin.y === h.y && (
+                  <circle cx={h.x} cy={h.y} r="2.7" fill="none" stroke="hsl(var(--info))" strokeWidth="0.4" />
+                )}
                 <title>{h.label}</title>
               </g>
             ))}
 
-            {/* Incidents (pulsing) */}
+            {/* Incidents (pulsing, clickable) */}
             {layers.incidents &&
               incidents.map((inc, i) => (
-                <g key={i}>
+                <g key={i} className="cursor-pointer" onMouseDown={(e) => e.stopPropagation()}
+                  onClick={pickPoint({ kind: "incident", label: inc.label, x: inc.x, y: inc.y, extra: inc.priority })}>
                   <circle cx={inc.x} cy={inc.y} r="1.6" fill={PRIORITY[inc.priority]}>
                     <animate attributeName="r" values="1.4;3;1.4" dur="2.2s" repeatCount="indefinite" />
                     <animate attributeName="opacity" values="0.9;0.15;0.9" dur="2.2s" repeatCount="indefinite" />
@@ -238,6 +297,36 @@ export function SaudiMap({
               <text x="0" y="-3.3" textAnchor="middle" fontSize="2" fill="hsl(var(--muted-foreground))" className="font-semibold">N</text>
             </g>
           </svg>
+
+          {/* Clicked-point callout — shows the location's name + type */}
+          {pin && (
+            <div
+              className="absolute z-10 w-max max-w-[12rem] rounded-lg border border-border-strong bg-card px-2.5 py-1.5 text-xs shadow-elevated"
+              style={{
+                left: `${((pin.x - view.x) / view.w) * 100}%`,
+                top: `${((pin.y - view.y) / view.h) * 100}%`,
+                transform: "translate(-50%, calc(-100% - 7px))",
+              }}
+            >
+              <div className="flex items-start gap-2">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-foreground">{pin.label}</p>
+                  <p className="text-[10px] capitalize text-muted-foreground">
+                    {pin.kind === "station" ? t("cc.map.station") : pin.kind === "hospital" ? t("cc.map.hospital") : t("cc.map.incident")}
+                    {pin.extra ? ` · ${pin.extra}` : ""}
+                  </p>
+                </div>
+                <button onClick={() => setPin(null)} aria-label="Close" className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+              </div>
+            </div>
+          )}
+
+          {/* Zoom controls */}
+          <div className="absolute left-2 top-2 flex flex-col gap-1">
+            <button onClick={() => zoomBy(0.7)} aria-label="Zoom in" className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground backdrop-blur transition-colors hover:text-foreground"><ZoomIn className="h-3.5 w-3.5" /></button>
+            <button onClick={() => zoomBy(1.42)} aria-label="Zoom out" className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground backdrop-blur transition-colors hover:text-foreground"><ZoomOut className="h-3.5 w-3.5" /></button>
+            <button onClick={resetView} aria-label="Reset view" className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground backdrop-blur transition-colors hover:text-foreground"><Maximize2 className="h-3.5 w-3.5" /></button>
+          </div>
 
           {/* Legend */}
           <div className="absolute bottom-2 left-2 flex flex-wrap gap-x-3 gap-y-1 rounded-lg bg-card/80 px-2.5 py-1.5 text-[10px] text-muted-foreground backdrop-blur">
