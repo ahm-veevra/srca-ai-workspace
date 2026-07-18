@@ -23,6 +23,8 @@ import { ProvenanceButton } from "./provenance-button";
 const MAP_H = 76;
 const KSA_PATH =
   "M2,14 L14,3 L21,1 L35,6 L48,14 L57,15 L62,17 L71,24 L74,27 L74,30 L77,34 L81,36 L83,38 L94,39 L100,48 L98,57 L83,62 L68,64 L59,69 L50,69 L41,69 L39,74 L31,63 L25,57 L22,50 L17,46 L13,38 L9,31 L5,24 L2,20 Z";
+const MIN_W = 22; // deepest zoom (100/22 ≈ 4.5×)
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 const PRIORITY: Record<"high" | "medium" | "low", string> = {
   high: "hsl(var(--danger))",
@@ -70,17 +72,45 @@ export function SaudiMap({
   const svgRef = React.useRef<SVGSVGElement>(null);
   const drag = React.useRef<{ x: number; y: number } | null>(null);
   const moved = React.useRef(false);
-  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-  function zoomBy(factor: number) {
+  // Zoom keeping the point at screen-fraction (px,py in 0..1) fixed — real map behaviour (zoom
+  // toward the cursor / a point of interest), not center-scaling an image.
+  const zoomAt = React.useCallback((factor: number, px: number, py: number) => {
     setView((v) => {
-      const nw = clamp(v.w * factor, 26, 100);
+      const nw = clamp(v.w * factor, MIN_W, 100);
       const nh = nw * (MAP_H / 100);
-      const cx = v.x + v.w / 2, cy = v.y + v.h / 2;
-      return { x: clamp(cx - nw / 2, 0, 100 - nw), y: clamp(cy - nh / 2, 0, MAP_H - nh), w: nw, h: nh };
+      const fx = v.x + px * v.w, fy = v.y + py * v.h;
+      return { x: clamp(fx - px * nw, 0, 100 - nw), y: clamp(fy - py * nh, 0, MAP_H - nh), w: nw, h: nh };
     });
-  }
+  }, []);
+  // Center + zoom onto a map point (used when a region is clicked → "zoom to Riyadh").
+  const focusPoint = React.useCallback((fx: number, fy: number, w = 40) => {
+    const nw = clamp(w, MIN_W, 100), nh = nw * (MAP_H / 100);
+    setView({ x: clamp(fx - nw / 2, 0, 100 - nw), y: clamp(fy - nh / 2, 0, MAP_H - nh), w: nw, h: nh });
+  }, []);
   const resetView = () => setView({ x: 0, y: 0, w: 100, h: MAP_H });
+  // +/- buttons zoom toward the selected region (so "zoom in" focuses on e.g. Riyadh), else centre.
+  function zoomButton(factor: number) {
+    const px = selected ? clamp((selected.x - view.x) / view.w, 0.1, 0.9) : 0.5;
+    const py = selected ? clamp((selected.y - view.y) / view.h, 0.1, 0.9) : 0.5;
+    zoomAt(factor, px, py);
+  }
+  // Wheel zoom toward the cursor — native (non-passive) listener so the page doesn't scroll.
+  React.useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const r = el.getBoundingClientRect();
+      zoomAt(e.deltaY > 0 ? 1.18 : 0.85, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [zoomAt]);
+  const onDoubleClick = (e: React.MouseEvent) => {
+    const r = svgRef.current!.getBoundingClientRect();
+    zoomAt(0.55, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+  };
   function onDown(e: React.MouseEvent) { drag.current = { x: e.clientX, y: e.clientY }; moved.current = false; }
   function onMove(e: React.MouseEvent) {
     if (!drag.current || !svgRef.current) return;
@@ -161,6 +191,7 @@ export function SaudiMap({
             onMouseMove={onMove}
             onMouseUp={onUp}
             onMouseLeave={onUp}
+            onDoubleClick={onDoubleClick}
             onClick={() => { if (moved.current) { moved.current = false; return; } setPin(null); }}
           >
             <defs>
@@ -267,7 +298,8 @@ export function SaudiMap({
             {regions.map((r) => {
               const on = selected.key === r.key;
               return (
-                <g key={r.key} className="cursor-pointer" onClick={() => setSelected(r)}>
+                <g key={r.key} className="cursor-pointer" onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); if (moved.current) { moved.current = false; return; } setSelected(r); focusPoint(r.x, r.y); }}>
                   {on && (
                     <circle cx={r.x} cy={r.y} r="4" fill="none" stroke={STATUS_FILL[r.status]} strokeWidth="0.5">
                       <animate attributeName="r" values="3;5;3" dur="2.4s" repeatCount="indefinite" />
@@ -323,8 +355,8 @@ export function SaudiMap({
 
           {/* Zoom controls */}
           <div className="absolute left-2 top-2 flex flex-col gap-1">
-            <button onClick={() => zoomBy(0.7)} aria-label="Zoom in" className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground backdrop-blur transition-colors hover:text-foreground"><ZoomIn className="h-3.5 w-3.5" /></button>
-            <button onClick={() => zoomBy(1.42)} aria-label="Zoom out" className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground backdrop-blur transition-colors hover:text-foreground"><ZoomOut className="h-3.5 w-3.5" /></button>
+            <button onClick={() => zoomButton(0.7)} aria-label="Zoom in" className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground backdrop-blur transition-colors hover:text-foreground"><ZoomIn className="h-3.5 w-3.5" /></button>
+            <button onClick={() => zoomButton(1.42)} aria-label="Zoom out" className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground backdrop-blur transition-colors hover:text-foreground"><ZoomOut className="h-3.5 w-3.5" /></button>
             <button onClick={resetView} aria-label="Reset view" className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card/90 text-muted-foreground backdrop-blur transition-colors hover:text-foreground"><Maximize2 className="h-3.5 w-3.5" /></button>
           </div>
 
@@ -366,7 +398,7 @@ export function SaudiMap({
           <p className="mt-4 text-xs text-muted-foreground">{t("cc.map.regionsByVolume")}</p>
           <div className="mt-2 space-y-1.5">
             {regions.map((r) => (
-              <button key={r.key} onClick={() => setSelected(r)} className="flex w-full items-center gap-2 text-left">
+              <button key={r.key} onClick={() => { setSelected(r); focusPoint(r.x, r.y); }} className="flex w-full items-center gap-2 text-left">
                 <span className="w-20 shrink-0 truncate text-xs">{regionName(r)}</span>
                 <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                   <span className="block h-full rounded-full" style={{ width: `${(r.calls / maxCalls) * 100}%`, background: STATUS_FILL[r.status] }} />
