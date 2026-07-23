@@ -13,3 +13,6 @@ aicp-config.json
 
 # Runtime label-dictionary overrides
 label-overrides.json
+
+# Dev server output
+.devserver.log
