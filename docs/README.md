@@ -15,7 +15,8 @@ Legend: ✅ done · 🟡 partial / pending your action · ❌ open (not started)
 | `aicp-ui-bugs-and-audit-brief.md` | Shared Dialog: vertical-overflow clipping + closes-on-text-selection; plus a full UI/RTL audit | ❌ open — `web/components/ui/dialog.tsx` unchanged |
 | `aicp-analysis-output-language-bug.md` | `/{domain}-intelligence/analyze` ignores output language (always English) | 🟡 workspace workaround for correspondence; add a `language` param for the rest |
 | `aicp-model-test-button-modality-bug.md` | Model "Test configuration" chat-probes every modality → false 404 for STT/embedding/rerank/vision | ❌ open |
-| `aicp-model-default-params-ui-brief.md` | Model editor has no `default_params` field — can't set "disable thinking" (`enable_thinking:false`) in the UI, silently dropped on edit | ❌ open |
+| `aicp-model-default-params-ui-brief.md` | Model editor `default_params` fields | 🟡 `enable_thinking` toggle landed; follow-up: make it write the full reasoning trio (`suppress_reasoning`+`reasoning`) + add temperature/max_tokens/JSON-mode/top_p + raw-JSON editor + show on detail view |
+| `aicp-capability-reasoning-control-brief.md` | Per-capability `reasoning_mode` (inherit/off/on) overriding the model default, so one model serves both strict-JSON and reasoning capabilities | ❌ open — proposal |
 | `aicp-connection-leak-fix.md` | `idle in transaction` connection leak stalls requests (transcription, dashboard) | 🟡 mitigated (300s timeout); recurs — needs a real fix for what leaks the txn |
 | `aicp-routing-circuit-fallback-bug.md` | Fallback chain doesn't skip a circuit-broken primary — Qwen circuit-open fails instead of dropping to arabic-llm | ✅ fixed — verified runs now fall through to arabic-llm while Qwen is down |
 | `aicp-pinned-models-widget-fix.md` | AICP Studio shows unpinned models in the Pinned Models panel | ❔ console bug — not verifiable from the workspace |
