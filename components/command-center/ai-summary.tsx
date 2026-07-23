@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { AlertTriangle, Loader2, RefreshCw, Sparkles } from "lucide-react";
 
 import { regenerateBriefing } from "@/lib/command-center-assist";
 import { useLocale, useT } from "@/lib/i18n";
@@ -95,6 +95,18 @@ export function AiSummary({
         {busy ? (
           <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin text-primary" /> {t("cc.summary.generating")}
+          </div>
+        ) : error ? (
+          <div className="flex min-h-[168px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-warning/40 bg-warning/5 p-6 text-center">
+            <AlertTriangle className="h-6 w-6 text-warning" />
+            <p className="text-sm font-medium text-foreground">{t("cc.summary.failed")}</p>
+            <p className="max-w-xs text-xs text-muted-foreground">{t("cc.summary.failedHint")}</p>
+            <button
+              onClick={run}
+              className="mt-1 flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> {t("cc.summary.retry")}
+            </button>
           </div>
         ) : (
           <AwaitingData label={t("cc.summary.awaiting")} hint={t("cc.summary.awaitingHint")} />
